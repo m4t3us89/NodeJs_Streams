@@ -6,32 +6,26 @@ import { createReadStream } from 'fs'
  
 
 const commands = new Map([
-    ['/csv', createReadableCSV],
-    ['/file' , createReadableFile1gb]
+    ['/csv', createFromLoop],
+    ['/file' , createFromFile1gb]
 ])
 
-function  createReadableCSV(){
+function  createFromLoop(){
 
     const readable =  createReadable(
         function () {
             // 100K interações
-            // for (let index = 0; index < 2; index++)
             for (let index = 0; index < 1e5; index++) {
-                const person = { id: Date.now() + index, name: `Erick-${index}` }
+                const person = { id: Date.now() + index, name: `Guest-${index}` }
                 const data = JSON.stringify(person)
                 this.push(data);
             }
 
-            this.push(null);
-
-            // this.push(Buffer.from("Hello Dude"));
-            // this.push(Buffer.from("Hello Dude2"));
-            // this.push(Buffer.from("Hello Dude3"));
-            // this.push(null);
+            this.push(null) //kill readable
         }
     )
 
-    const transform =     createTransform(
+    const transformNamePersonUpper =     createTransform(
         (chunk, enconding, cb) => {
             const data = JSON.parse(chunk)
             const result = `${data.id};${data.name.toUpperCase()}\n`
@@ -39,7 +33,7 @@ function  createReadableCSV(){
         }
     )
 
-    const transform2 =   createTransform(
+    const transformAddHeader =   createTransform(
         function (chunk, enconding, cb) {
             this.counter = this.counter ?? 0;
 
@@ -52,16 +46,14 @@ function  createReadableCSV(){
         }
     )
 
-     
-
     return {
         readable,
-        transforms : [transform, transform2]
+        transforms : [transformNamePersonUpper, transformAddHeader]
     }
     
 }
 
-function createReadableFile1gb(){
+function createFromFile1gb(){
     const readable = createReadStream("big.file")
     return {
         readable,
@@ -85,12 +77,14 @@ createServer(async (req,res)=>{
 
     const url = req.url
 
-    if(!commands.get(url)){
+    const command = commands.get(url)
+
+    if(!command){
         res.writeHead(404).write('Url não encontrada.')
         return res.end()
     }
 
-    const  { readable, transforms }  =   await commands.get(url)()
+    const  { readable, transforms }  =   await command()
 
     await pipelineAsync(
         readable,
@@ -98,7 +92,7 @@ createServer(async (req,res)=>{
         res
     )
 
-}).listen(3000, ()=>console.log('Server ON'))
+}).listen(3000, ()=>console.log('On Port 3000'))
 
 
 
