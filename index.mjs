@@ -86,7 +86,7 @@ createServer(async (req,res)=>{
 
     const  { readable, transforms }  =   await command()
 
-    await pipelineAsync( //a função pipelineAsync fazer o processamento, e recebe um Readable, um ou mais Transforms e o Writeable (Vale resssaltar que o Response do HTTP é um Writeable)
+    await pipelineAsync( //a função pipelineAsync faz o processamento,  recebe um Readable, um ou mais Transforms e o Writeable (Vale resssaltar que o Response do HTTP é um Writeable)
         readable,
         ...transforms,
         res
