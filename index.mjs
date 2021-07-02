@@ -12,20 +12,20 @@ const commands = new Map([
 
 function  createFromLoop(){
 
-    const readable =  createReadable(
+    const readable =  createReadable( //Crio um Readable em um laço de 100k de interações.
         function () {
-            // 100K intera��es
+            // 100K interações
             for (let index = 0; index < 1e5; index++) {
                 const person = { id: Date.now() + index, name: `Guest-${index}` }
                 const data = JSON.stringify(person)
                 this.push(data);
             }
 
-            this.push(null) //kill readable
+            this.push(null) //mata o readable
         }
     )
 
-    const transformNamePersonUpper =     createTransform(
+    const transformNamePersonUpper =     createTransform( // conforme os "chunks" ou pedaços são lidos, eu altero o "name" para maiusculo. 
         (chunk, enconding, cb) => {
             const data = JSON.parse(chunk)
             const result = `${data.id};${data.name.toUpperCase()}\n`
@@ -33,7 +33,7 @@ function  createFromLoop(){
         }
     )
 
-    const transformAddHeader =   createTransform(
+    const transformAddHeader =   createTransform( // aqui adiciono o cabeçalho no primeiro chunk. Isso mostra que posso usar mais de um transform na pipeline
         function (chunk, enconding, cb) {
             this.counter = this.counter ?? 0;
 
@@ -54,7 +54,7 @@ function  createFromLoop(){
 }
 
 function createFromFile1gb(){
-    const readable = createReadStream("big.file")
+    const readable = createReadStream("big.file") //O createReadStream do FS, retorna um Readable
     return {
         readable,
         transforms: []
@@ -80,13 +80,13 @@ createServer(async (req,res)=>{
     const command = commands.get(url)
 
     if(!command){
-        res.writeHead(404).write('Url n�o encontrada.')
+        res.writeHead(404).write('Url não encontrada.')
         return res.end()
     }
 
     const  { readable, transforms }  =   await command()
 
-    await pipelineAsync(
+    await pipelineAsync( //a função pipelineAsync fazer o processamento, e recebe um Readable, um ou mais Transforms e o Writeable (Vale resssaltar que o Response do HTTP é um Writeable)
         readable,
         ...transforms,
         res
@@ -110,7 +110,7 @@ createServer(async (req,res)=>{
     });
 
     readStream.on('data' , function(chunk) {
-        console.log('Peda�o' , chunk)
+        console.log('Pedaço' , chunk)
     })
 
     // This catches any errors that happen while creating the readable stream (usually invalid names)
