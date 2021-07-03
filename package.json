@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev" : "node_modules/.bin/nodemon index.mjs"
+    "dev": "node_modules/.bin/nodemon index.mjs"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +13,7 @@
   "devDependencies": {
     "nodemon": "^2.0.9"
   },
-   "engines": {
+  "engines": {
     "node": "16.1.0"
   }
 }

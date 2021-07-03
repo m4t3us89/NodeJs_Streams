@@ -4,6 +4,9 @@ import { promisify } from 'util'
 const pipelineAsync = promisify(pipeline)
 import { createReadStream } from 'fs'
  
+import cluster from 'cluster'
+import { cpus } from 'os'
+const numCPUs = cpus().length
 
 const commands = new Map([
     ['/csv', createFromLoop],
@@ -15,7 +18,7 @@ function  createFromLoop(){
     const readable =  createReadable( //Crio um Readable em um laço de 100k de interações.
         function () {
             // 100K interações
-            for (let index = 0; index < 1e5; index++) {
+            for (let index = 0; index < 1e6; index++) {
                 const person = { id: Date.now() + index, name: `Guest-${index}` }
                 const data = JSON.stringify(person)
                 this.push(data);
@@ -73,26 +76,52 @@ function createTransform(fn){
     })
 }
 
-createServer(async (req,res)=>{
 
-    const url = req.url
 
-    const command = commands.get(url)
 
-    if(!command){
-        res.writeHead(404).write('Url não encontrada.')
-        return res.end()
+
+if (cluster.isPrimary) {
+    console.log(`Primary ${process.pid} is running`);
+  
+    // Fork workers.
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
     }
+  
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`worker ${worker.process.pid} died`);
+    });
+  } else {
+    // Workers can share any TCP connection
+    // In this case it is an HTTP server
+    createServer(async (req,res)=>{
 
-    const  { readable, transforms }  =   await command()
+        const url = req.url
+    
+        const command = commands.get(url)
+    
+       
+    
+        if(!command){
+            res.writeHead(404).write('Url não encontrada.')
+            return res.end()
+        }
+    
+        const  { readable, transforms }  =   await command()
+    
+        await pipelineAsync( //a função pipelineAsync faz o processamento,  recebe um Readable, um ou mais Transforms e o Writeable (Vale resssaltar que o Response do HTTP é um Writeable)
+            readable,
+            ...transforms,
+            res
+        )
+    
+    }).listen(3000, ()=>console.log('On Port 3000'))
+  
+    console.log(`Worker ${process.pid} started`);
+  }
 
-    await pipelineAsync( //a função pipelineAsync faz o processamento,  recebe um Readable, um ou mais Transforms e o Writeable (Vale resssaltar que o Response do HTTP é um Writeable)
-        readable,
-        ...transforms,
-        res
-    )
 
-}).listen(3000, ()=>console.log('On Port 3000'))
+
 
 
 
